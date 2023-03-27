@@ -122,24 +122,6 @@ function parse_keywords(
 	end
 end
 
-function parse_keywords(
-	args::Vector{String}, keywords::Vector{Vector{String}}, keywordsoptional::Vector{Vector{String}}
-)
-	parse_keywords(args, first.(keywords), first.(keywordsoptional))
-end
-
-function parse_keywords(
-	args::Vector{String}, keywords::Vector{String}, keywordsoptional::Vector{Vector{String}}
-)
-	parse_keywords(args, keywords, first.(keywordsoptional))
-end
-
-function parse_keywords(
-	args::Vector{String}, keywords::Vector{Vector{String}}, keywordsoptional::Vector{String}
-)
-	parse_keywords(args, first.(keywords), keywordsoptional)
-end
-
 function parse_filter(args::Vector{String}, filter::Vector{String} )
 	for filename in args
 		if isfile(filename)
@@ -282,8 +264,33 @@ function main(args)
 	stats::Bool =  parsed_args["stats"];
 	plott::Bool =  parsed_args["plot"];
 
-	if !isempty(parsed_args["keyword"]) || !isempty(parsed_args["keyword-optional"])
-		parse_keywords(files,parsed_args["keyword"],parsed_args["keyword-optional"])
+	keywords =
+		parsed_args["keyword"] isa Vector{Vector{String}} ?
+		(x -> x[begin]).(parsed_args["keyword"]) :
+		parsed_args["keyword"]
+
+	keywords_optional =
+		parsed_args["keyword-optional"] isa Vector{Vector{String}} ?
+		(x -> x[begin]).(parsed_args["keyword-optional"]) :
+		parsed_args["keyword-optional"]
+
+	if !isempty(keywords) || !isempty(keywords_optional)
+
+		# first line (columns names)
+		first = true
+		for k in vcat(["FILEPATH"], keywords, keywords_optional)
+			if first
+				print(k)
+				first = false
+			else
+				print("\t", k)
+			end
+		end
+		println()
+
+		# results
+		parse_keywords(files, keywords, keywords_optional)
+
 	elseif !isempty(parsed_args["filter"])
 		parse_filter(files,parsed_args["filter"])
 	else
